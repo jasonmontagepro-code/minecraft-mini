@@ -1,5 +1,5 @@
 using UnityEngine;
-using System.Collections.Generic;
+using UnityEngine.AI;
 
 public class MobSpawner : MonoBehaviour
 {
@@ -9,21 +9,36 @@ public class MobSpawner : MonoBehaviour
     [SerializeField] private Transform playerTransform;
     
     private float lastSpawnTime = 0f;
-    private List<GameObject> activeMobs = new List<GameObject>();
+    private int activeMobCount = 0;
     
-    private List<GameObject> mobPrefabs = new List<GameObject>();
+    // Types de mobs à spawn
+    private System.Type[] mobTypes = new System.Type[]
+    {
+        typeof(Zombie), typeof(Spider), typeof(Skeleton), typeof(Creeper),
+        typeof(Cow), typeof(Sheep), typeof(Pig), typeof(Chicken), typeof(Horse),
+        typeof(Vampire), typeof(Wizard), typeof(Swordsman),
+        typeof(Enderman), typeof(Ghast), typeof(Bat), typeof(Drone),
+        typeof(GiantWorm), typeof(Miner), typeof(Demon),
+        typeof(Golem), typeof(MiniBoss), typeof(Fairy), typeof(MiniDragon)
+    };
 
     private void Start()
     {
         if (playerTransform == null)
         {
-            playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+                playerTransform = playerObj.transform;
+            else
+                Debug.LogError("MobSpawner : Le Player n'a pas été trouvé ! Assurez-vous que le Player a le tag 'Player'");
         }
     }
 
     private void Update()
     {
-        if (Time.time - lastSpawnTime > spawnCooldown && activeMobs.Count < maxMobCount)
+        if (playerTransform == null) return;
+        
+        if (Time.time - lastSpawnTime > spawnCooldown && activeMobCount < maxMobCount)
         {
             SpawnRandomMob();
             lastSpawnTime = Time.time;
@@ -32,51 +47,44 @@ public class MobSpawner : MonoBehaviour
 
     private void SpawnRandomMob()
     {
-        if (playerTransform == null) return;
-
+        // Position de spawn aléatoire
         Vector3 spawnPos = playerTransform.position + Random.insideUnitSphere * spawnRadius;
-        spawnPos.y = 35f; // Au-dessus du sol
+        spawnPos.y = 35f;
 
-        // Créer les mobs directement
-        int mobType = Random.Range(0, 25);
-        GameObject mobInstance = null;
+        // Type de mob aléatoire
+        System.Type randomMobType = mobTypes[Random.Range(0, mobTypes.Length)];
+        
+        // Créer le GameObject
+        GameObject mobInstance = new GameObject(randomMobType.Name);
+        mobInstance.transform.position = spawnPos;
+        
+        // Ajouter les composants nécessaires
+        Rigidbody rb = mobInstance.AddComponent<Rigidbody>();
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
+        
+        CapsuleCollider collider = mobInstance.AddComponent<CapsuleCollider>();
+        collider.height = 2f;
+        
+        NavMeshAgent agent = mobInstance.AddComponent<NavMeshAgent>();
+        agent.stoppingDistance = 0.5f;
+        
+        // Ajouter le script du mob
+        mobInstance.AddComponent(randomMobType);
+        
+        mobInstance.tag = "Mob";
+        
+        activeMobCount++;
+        
+        // Réduire le compteur quand le mob meurt
+        StartCoroutine(TrackMobDeath(mobInstance));
+    }
 
-        switch (mobType)
+    private System.Collections.IEnumerator TrackMobDeath(GameObject mob)
+    {
+        while (mob != null)
         {
-            case 0: mobInstance = new GameObject("Zombie"); mobInstance.AddComponent<Zombie>(); break;
-            case 1: mobInstance = new GameObject("Spider"); mobInstance.AddComponent<Spider>(); break;
-            case 2: mobInstance = new GameObject("Skeleton"); mobInstance.AddComponent<Skeleton>(); break;
-            case 3: mobInstance = new GameObject("Creeper"); mobInstance.AddComponent<Creeper>(); break;
-            case 4: mobInstance = new GameObject("Cow"); mobInstance.AddComponent<Cow>(); break;
-            case 5: mobInstance = new GameObject("Sheep"); mobInstance.AddComponent<Sheep>(); break;
-            case 6: mobInstance = new GameObject("Pig"); mobInstance.AddComponent<Pig>(); break;
-            case 7: mobInstance = new GameObject("Chicken"); mobInstance.AddComponent<Chicken>(); break;
-            case 8: mobInstance = new GameObject("Horse"); mobInstance.AddComponent<Horse>(); break;
-            case 9: mobInstance = new GameObject("Vampire"); mobInstance.AddComponent<Vampire>(); break;
-            case 10: mobInstance = new GameObject("Wizard"); mobInstance.AddComponent<Wizard>(); break;
-            case 11: mobInstance = new GameObject("Swordsman"); mobInstance.AddComponent<Swordsman>(); break;
-            case 12: mobInstance = new GameObject("Enderman"); mobInstance.AddComponent<Enderman>(); break;
-            case 13: mobInstance = new GameObject("Ghast"); mobInstance.AddComponent<Ghast>(); break;
-            case 14: mobInstance = new GameObject("Bat"); mobInstance.AddComponent<Bat>(); break;
-            case 15: mobInstance = new GameObject("Drone"); mobInstance.AddComponent<Drone>(); break;
-            case 16: mobInstance = new GameObject("GiantWorm"); mobInstance.AddComponent<GiantWorm>(); break;
-            case 17: mobInstance = new GameObject("Miner"); mobInstance.AddComponent<Miner>(); break;
-            case 18: mobInstance = new GameObject("Demon"); mobInstance.AddComponent<Demon>(); break;
-            case 19: mobInstance = new GameObject("Golem"); mobInstance.AddComponent<Golem>(); break;
-            case 20: mobInstance = new GameObject("MiniBoss"); mobInstance.AddComponent<MiniBoss>(); break;
-            case 21: mobInstance = new GameObject("Fairy"); mobInstance.AddComponent<Fairy>(); break;
-            case 22: mobInstance = new GameObject("MiniDragon"); mobInstance.AddComponent<MiniDragon>(); break;
+            yield return new WaitForSeconds(1f);
         }
-
-        if (mobInstance != null)
-        {
-            mobInstance.transform.position = spawnPos;
-            mobInstance.AddComponent<Rigidbody>();
-            mobInstance.AddComponent<CapsuleCollider>();
-            mobInstance.AddComponent<NavMeshAgent>();
-            mobInstance.tag = "Mob";
-            
-            activeMobs.Add(mobInstance);
-        }
+        activeMobCount--;
     }
 }

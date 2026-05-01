@@ -13,6 +13,8 @@ public class PlayerHUDUI : MonoBehaviour
     private void Start()
     {
         playerStats = FindObjectOfType<PlayerStats>();
+        if (playerStats == null)
+            Debug.LogError("PlayerHUDUI : PlayerStats non trouvé !");
     }
 
     private void Update()
@@ -20,20 +22,29 @@ public class PlayerHUDUI : MonoBehaviour
         if (playerStats != null)
         {
             // Mise à jour des barres
-            healthBar.fillAmount = playerStats.GetHealth() / playerStats.GetMaxHealth();
-            hungerBar.fillAmount = playerStats.GetHunger() / playerStats.GetMaxHunger();
+            if (healthBar != null)
+                healthBar.fillAmount = playerStats.GetHealth() / playerStats.GetMaxHealth();
+            
+            if (hungerBar != null)
+                hungerBar.fillAmount = playerStats.GetHunger() / playerStats.GetMaxHunger();
 
             // Mise à jour des textes
-            healthText.text = $"Santé: {playerStats.GetHealth():F1} / {playerStats.GetMaxHealth()}";
-            hungerText.text = $"Faim: {playerStats.GetHunger():F1} / {playerStats.GetMaxHunger()}";
+            if (healthText != null)
+                healthText.text = $"Santé: {playerStats.GetHealth():F1} / {playerStats.GetMaxHealth()}";
+            
+            if (hungerText != null)
+                hungerText.text = $"Faim: {playerStats.GetHunger():F1} / {playerStats.GetMaxHunger()}";
 
             // Changer couleur selon la santé
-            if (playerStats.GetHealth() < 5)
-                healthBar.color = Color.red;
-            else if (playerStats.GetHealth() < 10)
-                healthBar.color = Color.yellow;
-            else
-                healthBar.color = Color.green;
+            if (healthBar != null)
+            {
+                if (playerStats.GetHealth() < 5)
+                    healthBar.color = Color.red;
+                else if (playerStats.GetHealth() < 10)
+                    healthBar.color = Color.yellow;
+                else
+                    healthBar.color = Color.green;
+            }
         }
     }
 }
